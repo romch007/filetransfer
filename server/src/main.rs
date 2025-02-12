@@ -42,7 +42,9 @@ async fn get_file(
     Path(file_id): Path<String>,
 ) -> Result<axum::response::Response, StatusCode> {
     let (bytes_sender, bytes_receiver) = tokio::sync::mpsc::unbounded_channel();
-    state.clients.insert(file_id, bytes_sender);
+    state.clients.insert(file_id.clone(), bytes_sender);
+
+    tracing::debug!("new client waiting for '{file_id}'");
 
     // Create a Stream from the UnboundedReceiver
     let transfer_stream = tokio_stream::wrappers::UnboundedReceiverStream::new(bytes_receiver)
@@ -66,6 +68,8 @@ async fn put_file(
     Path(file_id): Path<String>,
     mut multipart: Multipart,
 ) -> Result<(), StatusCode> {
+    tracing::debug!("new client trying to upload to '{file_id}'");
+
     let client = state.clients.get(&file_id).map_not_found()?;
 
     while let Ok(Some(mut field)) = multipart.next_field().await {
@@ -83,6 +87,8 @@ async fn put_file(
             }
 
             client.send(TransferState::End).map_internal_err()?;
+
+            state.clients.remove(&file_id);
 
             return Ok(());
         }

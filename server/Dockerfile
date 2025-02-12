@@ -8,15 +8,15 @@ RUN cargo install cargo-build-deps
 
 WORKDIR /app
 
-RUN cargo new --bin filetransfer
-WORKDIR /app/filetransfer
+RUN cargo new --bin server
+WORKDIR /app/server
 
 COPY Cargo.toml Cargo.lock ./
 RUN cargo build-deps --release
 
 COPY src ./src
 RUN cargo build --release
-RUN strip target/release/filetransfer
+RUN strip target/release/server
 
 FROM gcr.io/distroless/cc-debian12:nonroot
 
@@ -27,9 +27,9 @@ EXPOSE 8080
 
 WORKDIR /app
 
-COPY --from=builder /app/filetransfer/target/release/filetransfer /app
+COPY --from=builder /app/server/target/release/server /app
 COPY --from=builder /tini /tini
 
 ENTRYPOINT ["/tini" , "--"]
 
-CMD ["/app/filetransfer"]
+CMD ["/app/server"]
