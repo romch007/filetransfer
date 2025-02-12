@@ -8,7 +8,7 @@ use std::{
 
 use axum::{
     body::Body,
-    extract::{Multipart, Path, State},
+    extract::{DefaultBodyLimit, Multipart, Path, State},
     http::StatusCode,
     routing::get,
     Router,
@@ -105,6 +105,7 @@ async fn main() {
     let state = AppState::default();
     let router = Router::new()
         .route("/{file_id}", get(get_file).post(put_file))
+        .layer(DefaultBodyLimit::disable())
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(sockaddr)
